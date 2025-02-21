@@ -1,4 +1,4 @@
-name: Publish Xerris.DotNet.Core.Aws
+name: Bounteous.Azure
 
 on:
   pull_request:
