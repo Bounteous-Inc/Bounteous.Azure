@@ -1,0 +1,20 @@
+name: Publish Xerris.DotNet.Core.Aws
+
+on:
+  pull_request:
+    types: [ closed ]
+    branches: [ main ]
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged == true
+    uses: Bounteous-Inc/bounteous-dotnet-common-workflows/.github/workflows/build-and-publish-to-nuget.yml@main
+    with:
+      csproj-path: './src/Bounteous.Azure/Bounteous.Azure.csproj'
+      nuget-package-name: 'Bounteous.Azure'
+      dotnet-version: '8.0.x'
+      release-path: 'net8.0'
+      build-configuration: 'Release'
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      NUGET_SOURCE_URI: ${{ secrets.NUGET_SOURCE_URI }}
