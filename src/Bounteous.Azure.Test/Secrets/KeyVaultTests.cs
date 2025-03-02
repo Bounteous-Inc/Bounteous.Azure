@@ -2,21 +2,25 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Bounteous.Azure.Extensions;
 using Bounteous.Azure.Secrets;
+using Bounteous.Azure.Test.Models;
 using Bounteous.Core.Extensions;
 using Bounteous.Core.Validations;
 using FluentAssertions;
-using Microsoft.AspNetCore.Routing.Constraints;
 using Moq;
 using Xunit;
 
 namespace Bounteous.Azure.Test.Secrets
 {
-    public class KeyVaultTests
+public class KeyVaultTests
     {
         private const string KeyVaultName = "myVault";
+        private const string SecretName = "api-key";
+        private const string SecretValue = "abc-123";
         private readonly Mock<SecretClient> mockClient;
         private readonly KeyVault keyVault;
 
@@ -27,41 +31,38 @@ namespace Bounteous.Azure.Test.Secrets
         }
 
         [Fact]
-        public void WithVaultName_ValidVaultName_ReturnsSecretsInstance()
-        {
-            // Act
-            var result = keyVault.WithVaultName(KeyVaultName);
+        public void WithVaultName() 
+            => keyVault.WithVaultName(KeyVaultName).Should().BeSameAs(keyVault);
 
-            // Assert
-            result.Should().NotBeNull();
-            result.Should().BeOfType<KeyVault>();
-        }
+        [Fact]
+        public async Task WithVaultName_Null()
+            => await FluentActions.Awaiting(() => keyVault.GetKeyAsync(null))
+                .Should().ThrowAsync<ValidationException>();
+        
+        [Fact]
+        public async Task WithVaultName_Empty()
+            => await FluentActions.Awaiting(() => keyVault.GetKeyAsync(string.Empty))
+                .Should().ThrowAsync<ValidationException>();
 
         [Fact]
         public async Task GetKeyAsync_ValidKey_ReturnsKeyValue()
         {
-            // Arrange
-            var keyName = "apiKey";
-            var expectedValue = "abc-123";
-            
-            mockClient.Setup(client => client.GetSecretAsync(keyName, null, CancellationToken.None))
-                .ReturnsAsync(Response.FromValue(new KeyVaultSecret(keyName, expectedValue), null!));
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+                .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
 
             // Act
             keyVault.WithVaultName(KeyVaultName);
-            var actualValue = await keyVault.GetKeyAsync(keyName);
+            var actualValue = await keyVault.GetKeyAsync(SecretName);
 
             // Assert
-            actualValue.Should().Be(expectedValue);
+            actualValue.Should().Be(SecretValue);
         }
 
         [Fact]
-        public async Task KeyNameNull()
-            => await RunInvalidKeyName(null);
+        public async Task KeyNameNull() => await RunInvalidKeyName(null);
 
         [Fact]
-        public async Task KeyNameEmpty()
-            => await RunInvalidKeyName(string.Empty);
+        public async Task KeyNameEmpty() => await RunInvalidKeyName(string.Empty);
         
         private async Task RunInvalidKeyName(string keyName)
         {
@@ -79,28 +80,59 @@ namespace Bounteous.Azure.Test.Secrets
         public async Task GetKeyAsync_Generic_ValidKey_ReturnsDeserializedValue()
         {
             // Arrange
-            var keyName = "apiKey";
-            var secret = new Secret { Uri = "www.example.com", ApiKey = "abc-123" };
+            var secretObject = new Secret { Uri = "www.example.com", ApiKey = "abc-123" };
             keyVault.WithVaultName(KeyVaultName);
 
-            mockClient.Setup(client => client.GetSecretAsync(keyName, null, CancellationToken.None))
-                .ReturnsAsync(Response.FromValue(new KeyVaultSecret(keyName, secret.ToJson()), null!));
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+                .ReturnsAsync(Response.FromValue(SecretName.AsSecret(secretObject.ToJson()), null!));
 
             // Act
-            var actualValue = await keyVault.GetKeyAsync<Secret>(keyName);
+            var actualValue = await keyVault.GetKeyAsync<Secret>(SecretName);
 
             // Assert
             Validate.Begin()
                 .IsNotNull(actualValue, nameof(actualValue)).Check()
-                .IsEqual(actualValue.Uri, secret.Uri, nameof(actualValue.Uri))
-                .IsEqual(actualValue.ApiKey, secret.ApiKey, nameof(actualValue.ApiKey))
+                .IsEqual(actualValue.Uri, secretObject.Uri, nameof(actualValue.Uri))
+                .IsEqual(actualValue.ApiKey, secretObject.ApiKey, nameof(actualValue.ApiKey))
                 .Check();
         }
-    }
-}
 
-public class Secret
-{
-    public string Uri { get; set; }
-    public string ApiKey { get; set; }
+        [Fact]
+        public void WithCredentials_ValidCredential_SetsCredential()
+            => keyVault.WithCredentials(new Mock<TokenCredential>().Object).Should().BeOfType<KeyVault>();
+
+        [Fact]
+        public async Task GetKeyAsync_WithProvidedCredential_UsesProvidedCredential()
+        {
+            var mockCredential = new Mock<TokenCredential>();
+            keyVault.WithVaultName(KeyVaultName).WithCredentials(mockCredential.Object);
+
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+                .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
+
+            // Act
+            var actualValue = await keyVault.GetKeyAsync(SecretName);
+
+            // Assert
+            actualValue.Should().Be(SecretValue);
+            mockClient.Verify(client => 
+                client.GetSecretAsync(SecretName, null, CancellationToken.None), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetKeyAsync_WithoutProvidedCredential_UsesDefaultAzureCredential()
+        {
+            keyVault.WithVaultName(KeyVaultName);
+
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+                .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
+
+            // Act
+            var actualValue = await keyVault.GetKeyAsync(SecretName);
+
+            // Assert
+            actualValue.Should().Be(SecretValue);
+            mockClient.Verify(client => client.GetSecretAsync(SecretName, null, CancellationToken.None), Times.Once);
+        }
+    }
 }

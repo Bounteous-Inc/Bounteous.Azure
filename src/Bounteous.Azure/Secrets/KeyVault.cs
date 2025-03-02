@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Bounteous.Core.Extensions;
@@ -11,6 +12,7 @@ namespace Bounteous.Azure.Secrets
     {
         private readonly Func<string, SecretClient> clientFactory;
         private string keyVaultUri;
+        private TokenCredential credentials;
 
         public KeyVault() { }
     
@@ -18,6 +20,13 @@ namespace Bounteous.Azure.Secrets
         {
             Validate.Begin().IsNotNull(clientFactory, nameof(clientFactory)).Check();
             this.clientFactory = clientFactory;
+        }
+
+        public KeyVault WithCredentials(TokenCredential credential)
+        {
+            Validate.Begin().IsNotNull(credential, nameof(credential)).Check();
+            this.credentials = credential;
+            return this;
         }
     
         public KeyVault WithVaultName(string keyVaultName)
@@ -29,7 +38,7 @@ namespace Bounteous.Azure.Secrets
 
         private SecretClient Client => clientFactory != null
             ? clientFactory(keyVaultUri)
-            : new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
+            : new SecretClient(new Uri(keyVaultUri), credentials??new DefaultAzureCredential());
 
         public async Task<string> GetKeyAsync(string keyName)
         {
