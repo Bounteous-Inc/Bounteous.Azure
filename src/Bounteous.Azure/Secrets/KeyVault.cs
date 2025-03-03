@@ -43,6 +43,7 @@ namespace Bounteous.Azure.Secrets
             keyVaultUri = $"https://{keyVaultName}.vault.azure.net";
             return this;
         }
+        
         public async Task<string> GetKeyAsync(string keyName)
         {
             Validate.Begin()
