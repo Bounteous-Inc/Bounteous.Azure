@@ -15,6 +15,7 @@ namespace Bounteous.Azure.Storage
     public interface IBlobStorage
     {
         IBlobStorage ForAccount(string accountName);
+        IBlobStorage WithCredentials(TokenCredential credential);
         Task<IBlobStorage> ForContainer(string container);
         Task SaveAsync<T>(string name, T toSave) where T : class;
         Task<T> ReadAsync<T>(string name) where T : class;
@@ -42,7 +43,7 @@ namespace Bounteous.Azure.Storage
             return this;
         }
         
-        public BlobStorage WithCredentials(TokenCredential credential)
+        public IBlobStorage WithCredentials(TokenCredential credential)
         {
             Validate.Begin().IsNotNull(credential, nameof(credential)).Check();
             credentials = credential;
@@ -76,6 +77,7 @@ namespace Bounteous.Azure.Storage
                 : new BlobServiceClient(blobClientUri, Credentials);
 
         private TokenCredential Credentials => credentials ?? new DefaultAzureCredential();
+        public Uri BlobClientUri => blobClientUri;
 
         private async Task<BlobContainerClient> GetContainerClientAsync(string container)
         {
