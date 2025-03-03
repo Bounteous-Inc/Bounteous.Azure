@@ -59,10 +59,10 @@ namespace Bounteous.Azure.Secrets
             var secret = await GetKeyAsync(keyName);
             return secret.FromJson<T>();
         }
-        
+
         private SecretClient Client => clientFactory != null
             ? clientFactory(keyVaultUri)
-            : new SecretClient(new Uri(keyVaultUri), credentials??new DefaultAzureCredential());
+            : new SecretClient(new Uri(keyVaultUri), credentials ?? new DefaultAzureCredential());
 
     }
 }
