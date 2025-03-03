@@ -61,9 +61,12 @@ namespace Bounteous.Azure.Secrets
             return secret.FromJson<T>();
         }
 
-        private SecretClient Client => clientFactory != null
-            ? clientFactory(keyVaultUri)
-            : new SecretClient(new Uri(keyVaultUri), credentials ?? new DefaultAzureCredential());
+        private SecretClient Client
+            => clientFactory != null
+                ? clientFactory(keyVaultUri)
+                : new SecretClient(new Uri(keyVaultUri), Credentials);
+        
+        private  TokenCredential Credentials => credentials ?? new DefaultAzureCredential();
 
     }
 }

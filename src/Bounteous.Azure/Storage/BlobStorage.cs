@@ -2,15 +2,19 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Bounteous.Azure.Serialization;
 using Bounteous.Core.Extensions;
+using Bounteous.Core.Validations;
 
 namespace Bounteous.Azure.Storage
 {
     public interface IBlobStorage
     {
+        IBlobStorage ForAccount(string accountName);
         Task<IBlobStorage> ForContainer(string container);
         Task SaveAsync<T>(string name, T toSave) where T : class;
         Task<T> ReadAsync<T>(string name) where T : class;
@@ -18,15 +22,31 @@ namespace Bounteous.Azure.Storage
 
     public class BlobStorage : IBlobStorage
     {
+        private Uri blobClientUri;
         private string containerName;
-        private Func<string,BlobServiceClient> clientFactory;
+        private readonly Func<string,BlobServiceClient> clientFactory;
         private BlobContainerClient containerClient;
+        private TokenCredential credentials;
 
         public BlobStorage() { }
 
         public BlobStorage(Func<string, BlobServiceClient> clientFactory)
         {
             this.clientFactory = clientFactory;
+        }
+
+        public IBlobStorage ForAccount(string accountName)
+        {
+            Validate.Begin().IsNotEmpty(accountName, nameof(accountName)).Check();
+            blobClientUri = new Uri($"https://{accountName}.blob.core.windows.net");
+            return this;
+        }
+        
+        public BlobStorage WithCredentials(TokenCredential credential)
+        {
+            Validate.Begin().IsNotNull(credential, nameof(credential)).Check();
+            credentials = credential;
+            return this;
         }
         
         public async Task<IBlobStorage> ForContainer(string container)
@@ -51,13 +71,11 @@ namespace Bounteous.Azure.Storage
         }
 
         private BlobServiceClient Client
-        {
-            get
-            {
-                clientFactory ??= x => new BlobServiceClient(containerName);
-                return clientFactory(containerName);
-            }
-        }
+            => clientFactory != null
+                ? clientFactory(containerName)
+                : new BlobServiceClient(blobClientUri, Credentials);
+
+        private TokenCredential Credentials => credentials ?? new DefaultAzureCredential();
 
         private async Task<BlobContainerClient> GetContainerClientAsync(string container)
         {

@@ -59,7 +59,7 @@ namespace Bounteous.Azure.Test.Storage
 
             await blobStorage.SaveAsync(blobName, data);
         }
-
+        
         private void SetupBlobClient(string name)
             => blobContainerClientMock
                 .Setup(x => x.GetBlobClient(name))
