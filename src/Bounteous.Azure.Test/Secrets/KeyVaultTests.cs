@@ -22,7 +22,7 @@ public class KeyVaultTests
         private const string SecretName = "api-key";
         private const string SecretValue = "abc-123";
         private readonly Mock<SecretClient> mockClient;
-        private readonly KeyVault keyVault;
+        private readonly IKeyVault keyVault;
 
         public KeyVaultTests()
         {

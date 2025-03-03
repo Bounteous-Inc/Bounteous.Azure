@@ -8,12 +8,20 @@ using Bounteous.Core.Validations;
 
 namespace Bounteous.Azure.Secrets
 {
-    public class KeyVault
+    public interface IKeyVault
+    {
+        KeyVault WithCredentials(TokenCredential credential);
+        KeyVault WithVaultName(string keyVaultName);
+        Task<string> GetKeyAsync(string keyName);
+        Task<T> GetKeyAsync<T>(string keyName);
+    }
+    
+    public class KeyVault : IKeyVault
     {
         private readonly Func<string, SecretClient> clientFactory;
         private string keyVaultUri;
         private TokenCredential credentials;
-
+        
         public KeyVault() { }
     
         public KeyVault(Func<string, SecretClient> clientFactory)
@@ -25,7 +33,7 @@ namespace Bounteous.Azure.Secrets
         public KeyVault WithCredentials(TokenCredential credential)
         {
             Validate.Begin().IsNotNull(credential, nameof(credential)).Check();
-            this.credentials = credential;
+            credentials = credential;
             return this;
         }
     
@@ -35,11 +43,6 @@ namespace Bounteous.Azure.Secrets
             keyVaultUri = $"https://{keyVaultName}.vault.azure.net";
             return this;
         }
-
-        private SecretClient Client => clientFactory != null
-            ? clientFactory(keyVaultUri)
-            : new SecretClient(new Uri(keyVaultUri), credentials??new DefaultAzureCredential());
-
         public async Task<string> GetKeyAsync(string keyName)
         {
             Validate.Begin()
@@ -56,5 +59,10 @@ namespace Bounteous.Azure.Secrets
             var secret = await GetKeyAsync(keyName);
             return secret.FromJson<T>();
         }
+        
+        private SecretClient Client => clientFactory != null
+            ? clientFactory(keyVaultUri)
+            : new SecretClient(new Uri(keyVaultUri), credentials??new DefaultAzureCredential());
+
     }
 }
