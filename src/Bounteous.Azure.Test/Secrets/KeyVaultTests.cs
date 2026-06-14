@@ -10,7 +10,7 @@ using Bounteous.Azure.Secrets;
 using Bounteous.Azure.Test.Models;
 using Bounteous.Core.Extensions;
 using Bounteous.Core.Validations;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 using Xunit;
 
@@ -48,7 +48,7 @@ public class KeyVaultTests
         [Fact]
         public async Task GetKeyAsync_ValidKey_ReturnsKeyValue()
         {
-            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, null, CancellationToken.None))
                 .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
 
             // Act
@@ -84,7 +84,7 @@ public class KeyVaultTests
             var secretObject = new Secret { Uri = "www.example.com", ApiKey = "abc-123" };
             keyVault.WithVaultName(KeyVaultName);
 
-            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, null, CancellationToken.None))
                 .ReturnsAsync(Response.FromValue(SecretName.AsSecret(secretObject.ToJson()), null!));
 
             // Act
@@ -108,7 +108,7 @@ public class KeyVaultTests
             var mockCredential = new Mock<TokenCredential>();
             keyVault.WithVaultName(KeyVaultName).WithCredentials(mockCredential.Object);
 
-            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, null, CancellationToken.None))
                 .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
 
             // Act
@@ -117,7 +117,7 @@ public class KeyVaultTests
             // Assert
             actualValue.Should().Be(SecretValue);
             mockClient.Verify(client => 
-                client.GetSecretAsync(SecretName, null, CancellationToken.None), Times.Once);
+                client.GetSecretAsync(SecretName, null, null, CancellationToken.None), Times.Once);
         }
 
         [Fact]
@@ -125,7 +125,7 @@ public class KeyVaultTests
         {
             keyVault.WithVaultName(KeyVaultName);
 
-            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, CancellationToken.None))
+            mockClient.Setup(client => client.GetSecretAsync(SecretName, null, null, CancellationToken.None))
                 .ReturnsAsync(Response.FromValue(SecretName.AsSecret(SecretValue), null!));
 
             // Act
@@ -133,7 +133,7 @@ public class KeyVaultTests
 
             // Assert
             actualValue.Should().Be(SecretValue);
-            mockClient.Verify(client => client.GetSecretAsync(SecretName, null, CancellationToken.None), Times.Once);
+            mockClient.Verify(client => client.GetSecretAsync(SecretName, null, null, CancellationToken.None), Times.Once);
         }
     }
 }

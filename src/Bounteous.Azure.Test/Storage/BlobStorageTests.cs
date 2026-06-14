@@ -8,7 +8,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Bounteous.Azure.Storage;
 using Bounteous.xUnit.Accelerator;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 using Xunit;
 

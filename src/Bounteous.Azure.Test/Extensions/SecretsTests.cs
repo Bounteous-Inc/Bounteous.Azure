@@ -2,7 +2,7 @@ using Bounteous.Azure.Extensions;
 using Bounteous.Azure.Test.Models;
 using Bounteous.Core.Extensions;
 using Bounteous.Core.Validations;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace Bounteous.Azure.Test.Extensions
