@@ -26,7 +26,8 @@ public class KeyVaultTests
 
         public KeyVaultTests()
         {
-            mockClient = new Mock<SecretClient>(new Uri($"https://{KeyVaultName}.vault.azure.net"), new DefaultAzureCredential());
+            mockClient = new Mock<SecretClient>(new Uri($"https://{KeyVaultName}.vault.azure.net"),
+                new DefaultAzureCredential());
             keyVault = new KeyVault(x => mockClient.Object);
         }
 

@@ -86,23 +86,29 @@ namespace Bounteous.Azure.Test.Storage
             SetupCreateIfNotExists();
             SetupBlobClient(blobName);
 
-            var data = new { Name = "John Doe", Age = 30 };
+            var data = new Person { Name = "John Doe", Age = 30 };
             var jsonData = System.Text.Json.JsonSerializer.Serialize(data);
             var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonData));
             var response = BlobsModelFactory.BlobDownloadInfo(content: stream);
 
             blobClientMock
-                .Setup(x => x.DownloadAsync(CancellationToken.None))
+                .Setup(x => x.DownloadAsync())
                 .ReturnsAsync(Response.FromValue(response, null!));
 
             await blobStorage.ForContainer(containerName);
 
             // Act
-            var result = await blobStorage.ReadAsync<dynamic>(blobName);
+            var result = await blobStorage.ReadAsync<Person>(blobName);
 
             // Assert
-            Assert.Equal(data.Name, result.Name.ToString());
-            Assert.Equal(data.Age, (int)result.Age);
+            Assert.Equal(data.Name, result.Name);
+            Assert.Equal(data.Age, result.Age);
+        }
+
+        private sealed class Person
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
         }
         
         private void SetupBlobClient(string name)
